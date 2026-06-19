@@ -22,7 +22,7 @@ nav button:active{transform:scale(.97)}
 .card h2{margin:0 0 6px;color:var(--g);font-size:18px}
 .card p{margin:0;color:#5a6b61;font-size:14px;line-height:1.45}
 .hint{max-width:760px;margin:16px auto 0;color:#5a6b61;font-size:12.5px;text-align:center}
-</style></head><body>
+</style><script data-goatcounter="https://mooflotic.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script></head><body>
 <header>
   <h1>🦌 Caccia di selezione &mdash; Michele</h1>
   <nav>
@@ -298,6 +298,7 @@ function submitExam(){
   exam.order.forEach((ix,pos)=>{ const a=exam.ans[pos]; if(a===BANK[ix].ans) correct++; else wrong.push({ix,pos,a}); });
   exam.done=true;
   const pct=Math.round(correct/NQ*100), pass=correct>=PASSN;
+  try{ var gc=window.parent&&window.parent.goatcounter; if(gc&&gc.count){ gc.count({path:(pass?'esame-ammesso':'esame-respinto'),event:true}); gc.count({path:'voto-'+correct+'su25',event:true}); } }catch(e){}
   $('#exprog').textContent='Risultato';
   let h='<div class="result '+(pass?'pass':'fail')+'"><div class="big">'+correct+' / '+NQ+'</div>';
   h+='<div class="pf">'+(pass?'✓ AMMESSO':'✗ NON ammesso')+' &nbsp;('+correct+'/'+NQ+' corrette — servono 20 per essere ammessi)</div>';
@@ -1027,6 +1028,7 @@ function show(v){
     doc.open(); doc.write(raw); doc.close();
     loaded[v]=true;
   }
+  if(v!=='home'&&window.goatcounter&&window.goatcounter.count){window.goatcounter.count({path:'apri-'+v,event:true});}
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(c.dataset.go));
