@@ -112,6 +112,13 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .opt.chosen{background:#fbecea}
 .opt.chosen .lt{background:#c0392b;color:#fff}
 .norisp{font-size:12.5px;color:#c0392b;font-weight:600;margin:4px 0}
+.exrow2{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px;color:var(--muted)}
+.exrow2 #seenInfo{flex:1}
+.lnk{background:none;border:none;color:var(--green);text-decoration:underline;cursor:pointer;font-size:12px;padding:2px 0;font-family:inherit}
+.rvtabs{display:flex;gap:8px;margin:16px 0 6px}
+.rvtab{flex:1;padding:9px 10px;border:1.5px solid var(--line);background:#fff;color:var(--green);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.rvtab.active{background:var(--green);color:#fff;border-color:var(--green)}
+.okt{color:var(--ok);font-weight:700}.kot{color:#c0392b;font-weight:700}
 .repbar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .repinfo{font-size:12.5px;color:var(--muted);font-weight:600}
 .repinfo.has{color:#b9770e}
@@ -167,6 +174,7 @@ button,.pill,.mode,.pq,.btn,.imgbtn,.exopt{-webkit-tap-highlight-color:rgba(0,0,
         <span id="exprog">Domanda 1 / 25</span>
         <button class="btn p sm" id="submitEx">Consegna ✓</button>
       </div>
+      <div class="exrow2"><span id="seenInfo"></span><button class="lnk" id="resetSeen">azzera cronologia</button></div>
     </div>
   </div>
   <div id="browse"><div id="list"></div></div>
@@ -264,11 +272,24 @@ function setMode(m){
   document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
   $('#browseHead').hidden=(m!=='browse'); $('#browse').hidden=(m!=='browse');
   $('#examHead').hidden=(m!=='exam'); $('#exam').hidden=(m!=='exam');
+  if(m==='exam') updateSeenInfo();
   window.scrollTo({top:0});
 }
+const SEEN_KEY='caccia_examSeen_v1'; let memSeen=null;
+function loadSeen(){ try{ return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||'[]')); }catch(e){ return memSeen||(memSeen=new Set()); } }
+function saveSeen(s){ memSeen=s; try{ localStorage.setItem(SEEN_KEY, JSON.stringify([...s])); }catch(e){} }
+function updateSeenInfo(){ const el=$('#seenInfo'); if(el) el.textContent='Domande già viste: '+loadSeen().size+' / '+BANK.length; }
 function startExam(){
-  const idx=[...Array(BANK.length).keys()]; shuffle(idx);
-  exam={order:idx.slice(0,NQ), ans:{}, pos:0, done:false};
+  let seen=loadSeen(); const all=[...Array(BANK.length).keys()];
+  let unseen=all.filter(i=>!seen.has(i)); shuffle(unseen);
+  let order, cycled=false;
+  if(unseen.length>=NQ){ order=unseen.slice(0,NQ); order.forEach(i=>seen.add(i)); }
+  else { cycled=true; order=unseen.slice(); seen=new Set(order);
+    let rest=all.filter(i=>!seen.has(i)); shuffle(rest);
+    const extra=rest.slice(0,NQ-order.length); order=order.concat(extra); extra.forEach(i=>seen.add(i)); }
+  shuffle(order); saveSeen(seen);
+  exam={order, ans:{}, pos:0, done:false}; updateSeenInfo();
+  if(cycled){ const el=$('#seenInfo'); if(el) el.textContent='✓ Hai completato tutte le '+BANK.length+' domande — nuovo giro iniziato!'; }
   renderExam();
 }
 function renderExam(){
@@ -295,30 +316,39 @@ function submitExam(){
   const dato=Object.keys(exam.ans).length;
   if(dato<NQ && !confirm('Hai risposto a '+dato+' domande su '+NQ+'. Consegnare comunque?')) return;
   let correct=0; const wrong=[];
-  exam.order.forEach((ix,pos)=>{ const a=exam.ans[pos]; if(a===BANK[ix].ans) correct++; else wrong.push({ix,pos,a}); });
-  exam.done=true;
-  const pct=Math.round(correct/NQ*100), pass=correct>=PASSN;
+  exam.order.forEach((ix,pos)=>{ const a=exam.ans[pos]; if(a===BANK[ix].ans) correct++; else wrong.push(pos); });
+  exam.done=true; exam.correct=correct; exam.wrong=wrong; exam.review='all';
+  const pass=correct>=PASSN;
   try{ var gc=window.parent&&window.parent.goatcounter; if(gc&&gc.count){ gc.count({path:(pass?'esame-ammesso':'esame-respinto'),event:true}); gc.count({path:'voto-'+correct+'su25',event:true}); } }catch(e){}
   $('#exprog').textContent='Risultato';
+  renderResult();
+}
+function reviewCard(pos){ const ix=exam.order[pos], it=BANK[ix], a=exam.ans[pos], ok=(a===it.ans);
+  let h='<div class="card"><span class="badge">'+it.m+' · id '+it.id+' · '+(ok?'<span class="okt">giusta ✓</span>':'<span class="kot">errata</span>')+'</span><div class="stem">'+escapeHtml(it.stem)+'</div>';
+  LET.forEach(L=>{ let cls=''; if(L===it.ans) cls=' right'; else if(L===a) cls=' chosen';
+    h+='<div class="opt'+cls+'"><span class="lt">'+L+'</span><span class="tx">'+escapeHtml(it[L]||'')+'</span></div>'; });
+  if(a===undefined) h+='<div class="norisp">Non hai risposto a questa domanda.</div>';
+  h+=(LIGHT?'':'<button class="imgbtn" data-idx="'+ix+'">🖼️ Mostra immagine originale</button>')+flagBtnHtml(ix)+(LIGHT?'':'<div class="imgwrap" id="iw'+ix+'"></div>')+'</div>';
+  return h; }
+function renderResult(){
+  const correct=exam.correct, wrong=exam.wrong, pass=correct>=PASSN;
   let h='<div class="result '+(pass?'pass':'fail')+'"><div class="big">'+correct+' / '+NQ+'</div>';
   h+='<div class="pf">'+(pass?'✓ AMMESSO':'✗ NON ammesso')+' &nbsp;('+correct+'/'+NQ+' corrette — servono 20 per essere ammessi)</div>';
   h+='<button class="btn p" id="newEx">↻ Nuovo esame</button></div>';
-  if(wrong.length){
-    h+='<h3 class="rvh">Da rivedere ('+wrong.length+')</h3>';
-    wrong.forEach(({ix,a})=>{ const it=BANK[ix];
-      h+='<div class="card"><span class="badge">'+it.m+' · id '+it.id+'</span><div class="stem">'+escapeHtml(it.stem)+'</div>';
-      LET.forEach(L=>{ let cls=''; if(L===it.ans) cls=' right'; else if(L===a) cls=' chosen';
-        h+='<div class="opt'+cls+'"><span class="lt">'+L+'</span><span class="tx">'+escapeHtml(it[L]||'')+'</span></div>'; });
-      if(a===undefined) h+='<div class="norisp">Non hai risposto a questa domanda.</div>';
-      h+=(LIGHT?'':'<button class="imgbtn" data-idx="'+ix+'">🖼️ Mostra immagine originale</button>')+flagBtnHtml(ix)+(LIGHT?'':'<div class="imgwrap" id="iw'+ix+'"></div>')+'</div>';
-    });
-  } else { h+='<div class="empty">Tutte corrette! 🎯</div>'; }
+  h+='<div class="rvtabs"><button class="rvtab'+(exam.review==='all'?' active':'')+'" data-rv="all">Rivedi tutte ('+NQ+')</button>';
+  h+='<button class="rvtab'+(exam.review==='wrong'?' active':'')+'" data-rv="wrong">Solo errori ('+wrong.length+')</button></div>';
+  if(exam.review==='wrong'){
+    if(wrong.length) wrong.forEach(p=>{ h+=reviewCard(p); });
+    else h+='<div class="empty">Tutte corrette! 🎯</div>';
+  } else { exam.order.forEach((_,p)=>{ h+=reviewCard(p); }); }
   $('#exam').innerHTML=h; window.scrollTo({top:0});
   $('#newEx').onclick=startExam;
+  document.querySelectorAll('.rvtab').forEach(b=>b.onclick=()=>{ exam.review=b.dataset.rv; renderResult(); });
 }
 document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{ const m=b.dataset.mode; setMode(m); if(m==='exam' && (!exam||exam.done)) startExam(); });
 $('#submitEx').onclick=submitExam;
 $('#newExHead').onclick=()=>{ if(!exam||exam.done||confirm('Iniziare un nuovo esame? Le risposte attuali andranno perse.')) startExam(); };
+$('#resetSeen').onclick=()=>{ if(confirm('Azzerare la cronologia delle domande già viste? Ricomincerai da tutte le '+BANK.length+'.')){ saveSeen(new Set()); updateSeenInfo(); } };
 
 function buildExport(){
   const ids=[...flagged].sort((a,b)=>a-b);
