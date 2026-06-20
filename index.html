@@ -119,6 +119,18 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .rvtab{flex:1;padding:9px 10px;border:1.5px solid var(--line);background:#fff;color:var(--green);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .rvtab.active{background:var(--green);color:#fff;border-color:var(--green)}
 .okt{color:var(--ok);font-weight:700}.kot{color:#c0392b;font-weight:700}
+.rvinfo{font-size:12.5px;color:var(--muted);margin:2px 0 14px;line-height:1.7}
+.imln{margin-top:10px;border:1.5px solid var(--ok);border-radius:9px;padding:8px 12px;background:#fff;color:var(--ok);font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.imln:active{transform:scale(.985)}
+.prog{display:flex;gap:7px;margin:2px 0 16px;flex-wrap:wrap}
+.pstat{flex:1;min-width:66px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:9px 5px;text-align:center;box-shadow:var(--shadow)}
+.pstat b{display:block;font-size:19px;color:var(--green);font-weight:800;line-height:1.2}
+.pstat span{font-size:10.5px;color:var(--muted)}
+.pstat.ok{border-color:var(--ok)} .pstat.ok b{color:var(--ok)}
+.pstat.bad{border-color:#e8b4ad} .pstat.bad b{color:#c0392b}
+.train{width:100%;margin:0 0 12px}
+.markbtn{margin-top:8px;margin-left:8px;border:1.5px solid #e0c468;border-radius:9px;padding:8px 12px;background:#fff;color:#9a7d12;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.markbtn.on{background:#fdf6e3;border-color:#d4af37;color:#7a6210}
 .repbar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .repinfo{font-size:12.5px;color:var(--muted);font-weight:600}
 .repinfo.has{color:#b9770e}
@@ -156,6 +168,7 @@ button,.pill,.mode,.pq,.btn,.imgbtn,.exopt{-webkit-tap-highlight-color:rgba(0,0,
     <div class="modebar">
       <button class="mode active" data-mode="browse">📚 Consulta</button>
       <button class="mode" data-mode="exam">📝 Simula esame</button>
+      <button class="mode" data-mode="review">🎯 Errori</button>
     </div>
 
     <div id="browseHead">
@@ -165,6 +178,7 @@ button,.pill,.mode,.pq,.btn,.imgbtn,.exopt{-webkit-tap-highlight-color:rgba(0,0,
         <div class="pill" data-m="Base">Base</div>
         <div class="pill" data-m="Selezione">Selezione</div>
         <div class="pill" data-m="Censitore">Censitore</div>
+        <div class="pill" data-m="★">★ Preferiti</div>
         <span class="count" id="count">—</span>
       </div>
     </div>
@@ -179,6 +193,7 @@ button,.pill,.mode,.pq,.btn,.imgbtn,.exopt{-webkit-tap-highlight-color:rgba(0,0,
   </div>
   <div id="browse"><div id="list"></div></div>
   <div id="exam" hidden></div>
+  <div id="review" hidden></div>
 </div>
 
 <script>
@@ -194,6 +209,10 @@ let flagged=new Set();
 try{ const s=localStorage.getItem('caccia_flags'); if(s) flagged=new Set(JSON.parse(s)); }catch(e){}
 function saveFlags(){ try{ localStorage.setItem('caccia_flags', JSON.stringify([...flagged])); }catch(e){} }
 function flagBtnHtml(idx){ if(LIGHT) return ''; const on=flagged.has(idx); return '<button class="flagbtn'+(on?' on':'')+'" data-flag="'+idx+'">'+(on?'✓ Segnalata':'⚠ Segnala ortografia')+'</button>'; }
+let marks=new Set();
+try{ const s=localStorage.getItem('caccia_marks'); if(s) marks=new Set(JSON.parse(s)); }catch(e){}
+function saveMarks(){ try{ localStorage.setItem('caccia_marks', JSON.stringify([...marks])); }catch(e){} }
+function markBtnHtml(idx){ const on=marks.has(idx); return '<button class="markbtn'+(on?' on':'')+'" data-mark="'+idx+'">'+(on?'★ Nei preferiti':'☆ Aggiungi ai preferiti')+'</button>'; }
 function updateFlagInfo(){
   if(LIGHT) return;
   const n=flagged.size, el=$('#flagInfo'), btn=$('#exportBtn');
@@ -211,8 +230,9 @@ function hl(text, q){
 }
 function escapeHtml(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 
-function matches(it){
-  if(fMod!=='Tutti' && it.m!==fMod) return false;
+function matches(it,idx){
+  if(fMod==='★'){ if(!marks.has(idx)) return false; }
+  else if(fMod!=='Tutti' && it.m!==fMod) return false;
   if(fQ){ const blob=norm([it.stem,it.A,it.B,it.C,it.D,it.id,it.m].join(' ')); if(!blob.includes(norm(fQ))) return false; }
   return true;
 }
@@ -221,7 +241,7 @@ function render(){
   const list=$('#list'); list.innerHTML='';
   let n=0; const frag=document.createDocumentFragment();
   BANK.forEach((it,idx)=>{
-    if(!matches(it)) return; n++;
+    if(!matches(it,idx)) return; n++;
     const d=document.createElement('div'); d.className='card';
     let h='<span class="badge">'+it.m+' · id '+it.id+'</span>';
     h+='<div class="stem">'+hl(it.stem,fQ)+'</div>';
@@ -234,7 +254,7 @@ function render(){
       h+='<div class="opt right"><span class="lt">'+it.ans+'</span><span class="tx">Risposta corretta: '+it.ans+' — opzioni nell\'immagine</span></div>';
     }
     if(!LIGHT){ h+='<button class="imgbtn" data-idx="'+idx+'">🖼️ Mostra immagine originale</button>'; }
-    h+=flagBtnHtml(idx);
+    h+=markBtnHtml(idx)+flagBtnHtml(idx);
     if(!LIGHT){ h+='<div class="imgwrap" id="iw'+idx+'"></div>'; }
     d.innerHTML=h; frag.appendChild(d);
   });
@@ -244,6 +264,12 @@ function render(){
 }
 
 document.addEventListener('click',e=>{
+  const mb=e.target.closest('.markbtn');
+  if(mb){ const idx=+mb.dataset.mark; if(marks.has(idx)) marks.delete(idx); else marks.add(idx); saveMarks();
+    document.querySelectorAll('.markbtn[data-mark="'+idx+'"]').forEach(b=>{ const on=marks.has(idx); b.classList.toggle('on',on); b.textContent=on?'★ Nei preferiti':'☆ Aggiungi ai preferiti'; });
+    if(fMod==='★') render(); return; }
+  const im=e.target.closest('.imln');
+  if(im){ const ix=+im.dataset.imln; const st=loadStats(); if(st[ix]){ st[ix].bad=false; saveStats(st); } renderReview(); return; }
   const fb=e.target.closest('.flagbtn');
   if(fb){ const idx=+fb.dataset.flag;
     if(flagged.has(idx)) flagged.delete(idx); else flagged.add(idx);
@@ -272,13 +298,18 @@ function setMode(m){
   document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
   $('#browseHead').hidden=(m!=='browse'); $('#browse').hidden=(m!=='browse');
   $('#examHead').hidden=(m!=='exam'); $('#exam').hidden=(m!=='exam');
+  $('#review').hidden=(m!=='review');
   if(m==='exam') updateSeenInfo();
+  if(m==='review') renderReview();
   window.scrollTo({top:0});
 }
 const SEEN_KEY='caccia_examSeen_v1'; let memSeen=null;
 function loadSeen(){ try{ return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||'[]')); }catch(e){ return memSeen||(memSeen=new Set()); } }
 function saveSeen(s){ memSeen=s; try{ localStorage.setItem(SEEN_KEY, JSON.stringify([...s])); }catch(e){} }
 function updateSeenInfo(){ const el=$('#seenInfo'); if(el) el.textContent='Domande già viste: '+loadSeen().size+' / '+BANK.length; }
+const STATS_KEY='caccia_stats_v1'; let memStats=null;
+function loadStats(){ try{ return JSON.parse(localStorage.getItem(STATS_KEY)||'{}'); }catch(e){ return memStats||(memStats={}); } }
+function saveStats(o){ memStats=o; try{ localStorage.setItem(STATS_KEY, JSON.stringify(o)); }catch(e){} }
 function startExam(){
   let seen=loadSeen(); const all=[...Array(BANK.length).keys()];
   let unseen=all.filter(i=>!seen.has(i)); shuffle(unseen);
@@ -293,18 +324,18 @@ function startExam(){
   renderExam();
 }
 function renderExam(){
-  const ix=exam.order[exam.pos], it=BANK[ix];
-  $('#exprog').textContent='Domanda '+(exam.pos+1)+' / '+NQ;
-  let h='<div class="card"><span class="badge">'+it.m+'</span>';
+  const N=exam.order.length, ix=exam.order[exam.pos], it=BANK[ix];
+  $('#exprog').textContent='Domanda '+(exam.pos+1)+' / '+N;
+  let h='<div class="card"><span class="badge">'+(exam.training?'🎯 ripasso · ':'')+it.m+'</span>';
   h+='<div class="stem">'+escapeHtml(it.stem)+'</div>';
   LET.forEach(L=>{ const sel=exam.ans[exam.pos]===L;
     h+='<div class="exopt'+(sel?' sel':'')+'" data-l="'+L+'"><span class="lt">'+L+'</span><span class="tx">'+escapeHtml(it[L]||'')+'</span></div>'; });
   h+=flagBtnHtml(ix);
   h+='</div><div class="palette">';
-  for(let i=0;i<NQ;i++){ h+='<button class="pq'+(i===exam.pos?' cur':'')+(exam.ans[i]!==undefined?' done':'')+'" data-pos="'+i+'">'+(i+1)+'</button>'; }
+  for(let i=0;i<N;i++){ h+='<button class="pq'+(i===exam.pos?' cur':'')+(exam.ans[i]!==undefined?' done':'')+'" data-pos="'+i+'">'+(i+1)+'</button>'; }
   h+='</div><div class="navrow"><button class="btn s" id="prevQ"'+(exam.pos===0?' disabled':'')+'>← Indietro</button>';
-  h+='<span class="ansN">Risposte: '+Object.keys(exam.ans).length+' / '+NQ+'</span>';
-  h+='<button class="btn s" id="nextQ"'+(exam.pos===NQ-1?' disabled':'')+'>Avanti →</button></div>';
+  h+='<span class="ansN">Risposte: '+Object.keys(exam.ans).length+' / '+N+'</span>';
+  h+='<button class="btn s" id="nextQ"'+(exam.pos===N-1?' disabled':'')+'>Avanti →</button></div>';
   $('#exam').innerHTML=h;
   document.querySelectorAll('.exopt').forEach(o=>o.onclick=()=>{ exam.ans[exam.pos]=o.dataset.l; renderExam(); });
   document.querySelectorAll('.pq').forEach(b=>b.onclick=()=>{ exam.pos=+b.dataset.pos; renderExam(); window.scrollTo({top:0}); });
@@ -312,14 +343,22 @@ function renderExam(){
   if(pv) pv.onclick=()=>{ exam.pos--; renderExam(); window.scrollTo({top:0}); };
   if(nx) nx.onclick=()=>{ exam.pos++; renderExam(); window.scrollTo({top:0}); };
 }
+const HIST_KEY='caccia_examHist_v1';
+function loadHist(){ try{ return JSON.parse(localStorage.getItem(HIST_KEY)||'[]'); }catch(e){ return []; } }
+function saveHist(a){ try{ localStorage.setItem(HIST_KEY, JSON.stringify(a)); }catch(e){} }
 function submitExam(){
-  const dato=Object.keys(exam.ans).length;
-  if(dato<NQ && !confirm('Hai risposto a '+dato+' domande su '+NQ+'. Consegnare comunque?')) return;
+  const N=exam.order.length, dato=Object.keys(exam.ans).length;
+  if(dato<N && !confirm('Hai risposto a '+dato+' domande su '+N+'. Consegnare comunque?')) return;
   let correct=0; const wrong=[];
   exam.order.forEach((ix,pos)=>{ const a=exam.ans[pos]; if(a===BANK[ix].ans) correct++; else wrong.push(pos); });
   exam.done=true; exam.correct=correct; exam.wrong=wrong; exam.review='all';
-  const pass=correct>=PASSN;
-  try{ var gc=window.parent&&window.parent.goatcounter; if(gc&&gc.count){ gc.count({path:(pass?'esame-ammesso':'esame-respinto'),event:true}); gc.count({path:'voto-'+correct+'su25',event:true}); } }catch(e){}
+  const st=loadStats();
+  exam.order.forEach((ix,pos)=>{ const a=exam.ans[pos]; if(a===undefined) return; const s=st[ix]||(st[ix]={w:0,n:0}); s.n++; if(a!==BANK[ix].ans){ s.w++; s.bad=true; } else { s.bad=false; } });
+  saveStats(st);
+  if(!exam.training){ const hist=loadHist(); hist.push(correct); while(hist.length>20) hist.shift(); saveHist(hist);
+    const pass=correct>=PASSN;
+    try{ var gc=window.parent&&window.parent.goatcounter; if(gc&&gc.count){ gc.count({path:(pass?'esame-ammesso':'esame-respinto'),event:true}); gc.count({path:'voto-'+correct+'su25',event:true}); } }catch(e){}
+  }
   $('#exprog').textContent='Risultato';
   renderResult();
 }
@@ -328,22 +367,65 @@ function reviewCard(pos){ const ix=exam.order[pos], it=BANK[ix], a=exam.ans[pos]
   LET.forEach(L=>{ let cls=''; if(L===it.ans) cls=' right'; else if(L===a) cls=' chosen';
     h+='<div class="opt'+cls+'"><span class="lt">'+L+'</span><span class="tx">'+escapeHtml(it[L]||'')+'</span></div>'; });
   if(a===undefined) h+='<div class="norisp">Non hai risposto a questa domanda.</div>';
-  h+=(LIGHT?'':'<button class="imgbtn" data-idx="'+ix+'">🖼️ Mostra immagine originale</button>')+flagBtnHtml(ix)+(LIGHT?'':'<div class="imgwrap" id="iw'+ix+'"></div>')+'</div>';
+  h+=markBtnHtml(ix)+(LIGHT?'':'<button class="imgbtn" data-idx="'+ix+'">🖼️ Mostra immagine originale</button>')+flagBtnHtml(ix)+(LIGHT?'':'<div class="imgwrap" id="iw'+ix+'"></div>')+'</div>';
   return h; }
 function renderResult(){
-  const correct=exam.correct, wrong=exam.wrong, pass=correct>=PASSN;
-  let h='<div class="result '+(pass?'pass':'fail')+'"><div class="big">'+correct+' / '+NQ+'</div>';
-  h+='<div class="pf">'+(pass?'✓ AMMESSO':'✗ NON ammesso')+' &nbsp;('+correct+'/'+NQ+' corrette — servono 20 per essere ammessi)</div>';
-  h+='<button class="btn p" id="newEx">↻ Nuovo esame</button></div>';
-  h+='<div class="rvtabs"><button class="rvtab'+(exam.review==='all'?' active':'')+'" data-rv="all">Rivedi tutte ('+NQ+')</button>';
+  const N=exam.order.length, correct=exam.correct, wrong=exam.wrong, pass=correct>=PASSN, tr=exam.training;
+  let h='<div class="result '+(tr?'':(pass?'pass':'fail'))+'"><div class="big">'+correct+' / '+N+'</div>';
+  if(tr){ h+='<div class="pf">Ripasso completato — '+correct+'/'+N+' giuste'+(correct<N?'. Le sbagliate restano in lista.':' 🎯')+'</div>'; }
+  else { h+='<div class="pf">'+(pass?'✓ AMMESSO':'✗ NON ammesso')+' &nbsp;('+correct+'/'+N+' corrette — servono 20 per essere ammessi)</div>'; }
+  h+='<button class="btn p" id="newEx">'+(tr?'↻ Continua ripasso':'↻ Nuovo esame')+'</button></div>';
+  h+='<div class="rvtabs"><button class="rvtab'+(exam.review==='all'?' active':'')+'" data-rv="all">Rivedi tutte ('+N+')</button>';
   h+='<button class="rvtab'+(exam.review==='wrong'?' active':'')+'" data-rv="wrong">Solo errori ('+wrong.length+')</button></div>';
   if(exam.review==='wrong'){
     if(wrong.length) wrong.forEach(p=>{ h+=reviewCard(p); });
     else h+='<div class="empty">Tutte corrette! 🎯</div>';
   } else { exam.order.forEach((_,p)=>{ h+=reviewCard(p); }); }
   $('#exam').innerHTML=h; window.scrollTo({top:0});
-  $('#newEx').onclick=startExam;
+  $('#newEx').onclick = tr ? startTraining : startExam;
   document.querySelectorAll('.rvtab').forEach(b=>b.onclick=()=>{ exam.review=b.dataset.rv; renderResult(); });
+}
+function errorPool(){ const st=loadStats(); return Object.keys(st).map(k=>+k).filter(ix=>st[ix]&&st[ix].w>0&&st[ix].bad!==false).sort((a,b)=> (st[b].w-st[a].w) || ((st[b].w/st[b].n)-(st[a].w/st[a].n)) ); }
+function startTraining(){
+  const pool=errorPool();
+  if(!pool.length){ alert('Non hai (più) domande da ripassare. Ottimo lavoro!'); setMode('review'); return; }
+  const ord=pool.slice(); shuffle(ord); const order=ord.slice(0, Math.min(ord.length, NQ));
+  exam={order, ans:{}, pos:0, done:false, training:true};
+  setMode('exam');
+  const el=$('#seenInfo'); if(el) el.textContent='🎯 Ripasso mirato — '+order.length+' domande dai tuoi errori';
+  renderExam();
+}
+function progressPanel(){
+  const st=loadStats(); const ixs=Object.keys(st).map(k=>+k);
+  const tent=ixs.filter(ix=>st[ix].n>0).length;
+  const ripassare=ixs.filter(ix=>st[ix]&&st[ix].w>0&&st[ix].bad!==false).length;
+  const padron=tent-ripassare;
+  const hist=loadHist(); const last=hist.slice(-5); const avg=last.length?Math.round(last.reduce((a,b)=>a+b,0)/last.length):null;
+  let h='<div class="prog">';
+  h+='<div class="pstat"><b>'+tent+'</b><span>tentate</span></div>';
+  h+='<div class="pstat ok"><b>'+padron+'</b><span>padroneggiate</span></div>';
+  h+='<div class="pstat bad"><b>'+ripassare+'</b><span>da ripassare</span></div>';
+  h+='<div class="pstat"><b>'+(avg!==null?avg+'/25':'—')+'</b><span>media esami</span></div>';
+  h+='</div>';
+  return h;
+}
+function renderReview(){
+  const st=loadStats(); const items=errorPool();
+  let h=progressPanel();
+  if(!items.length){ h+='<div class="empty">Nessuna domanda da ripassare in questo momento.<br>Fai qualche simulazione: le domande che sbagli compariranno qui.</div>'; }
+  else {
+    h+='<button class="btn p train" id="trainBtn">🎯 Allenati sui tuoi errori ('+items.length+')</button>';
+    h+='<div class="rvinfo">Ordinate dalle più sbagliate · "Imparata" o una risposta giusta le rimuove. <button class="lnk" id="resetStats">azzera statistiche</button></div>';
+    items.forEach(ix=>{ const it=BANK[ix], s=st[ix];
+      h+='<div class="card"><span class="badge">'+it.m+' · id '+it.id+' · <span class="kot">sbagliata '+s.w+(s.w===1?' volta':' volte')+(s.n>s.w?' su '+s.n+' tentativi':'')+'</span></span><div class="stem">'+escapeHtml(it.stem)+'</div>';
+      LET.forEach(L=>{ h+='<div class="opt'+(L===it.ans?' right':'')+'"><span class="lt">'+L+'</span><span class="tx">'+escapeHtml(it[L]||'')+'</span></div>'; });
+      h+='<button class="imln" data-imln="'+ix+'">✓ Imparata</button>'+markBtnHtml(ix);
+      h+=(LIGHT?'':'<button class="imgbtn" data-idx="'+ix+'">🖼️ Mostra immagine originale</button>')+flagBtnHtml(ix)+(LIGHT?'':'<div class="imgwrap" id="iw'+ix+'"></div>')+'</div>';
+    });
+  }
+  $('#review').innerHTML=h;
+  const tb=$('#trainBtn'); if(tb) tb.onclick=startTraining;
+  const rs=$('#resetStats'); if(rs) rs.onclick=()=>{ if(confirm('Azzerare tutte le statistiche degli errori? La lista verrà svuotata.')){ saveStats({}); renderReview(); } };
 }
 document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{ const m=b.dataset.mode; setMode(m); if(m==='exam' && (!exam||exam.done)) startExam(); });
 $('#submitEx').onclick=submitExam;
