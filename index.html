@@ -386,7 +386,6 @@ function renderExam(){
   h+='<div class="stem">'+escapeHtml(it.stem)+'</div>';
   LET.forEach(L=>{ const sel=exam.ans[exam.pos]===L;
     h+='<div class="exopt'+(sel?' sel':'')+'" data-l="'+L+'"><span class="lt">'+L+'</span><span class="tx">'+escapeHtml(it[L]||'')+'</span></div>'; });
-  h+=flagBtnHtml(ix);
   h+='</div>';
   h+='<div class="exbar"><i style="width:'+Math.round((exam.pos+1)/N*100)+'%"></i></div>';
   h+='<div class="navrow"><button class="btn s sm" id="prevQ"'+(exam.pos===0?' disabled':'')+'>← Indietro</button>';
@@ -395,6 +394,7 @@ function renderExam(){
   h+='<div class="palette">';
   for(let i=0;i<N;i++){ h+='<button class="pq'+(i===exam.pos?' cur':'')+(exam.ans[i]!==undefined?' done':'')+'" data-pos="'+i+'">'+(i+1)+'</button>'; }
   h+='</div>';
+  h+=flagBtnHtml(ix);
   $('#exam').innerHTML=h;
   document.querySelectorAll('.exopt').forEach(o=>o.onclick=()=>{ exam.ans[exam.pos]=o.dataset.l; renderExam(); });
   document.querySelectorAll('.pq').forEach(b=>b.onclick=()=>{ exam.pos=+b.dataset.pos; renderExam(); window.scrollTo({top:0}); });
