@@ -123,11 +123,12 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .provabtn:hover{border-color:var(--green2)}
 .provabtn.active{background:var(--green);color:#fff;border-color:var(--green)}
 .provabtn.active small{color:rgba(255,255,255,.85)}
-#examHead.running .provabtn{padding:6px 8px;font-size:12.5px}
-#examHead.running .provabtn small{display:none}
-#examHead.running .exprova{margin-bottom:6px}
+#examHead.running .exprova{display:none}
 #examHead.running .exrow{gap:8px}
 #examHead.running .exrow2{display:none}
+#examHead.choosing .exrow{display:none}
+#examHead.choosing .exrow2{display:none}
+.chooseHint{color:var(--muted);font-size:14px;line-height:1.5}
 .lnk{background:none;border:none;color:var(--green);text-decoration:underline;cursor:pointer;font-size:12px;padding:2px 0;font-family:inherit}
 .rvtabs{display:flex;gap:8px;margin:16px 0 6px}
 .rvtab{flex:1;padding:9px 10px;border:1.5px solid var(--line);background:#fff;color:var(--green);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -360,8 +361,14 @@ function startExam(){
   if(cycled){ const el=$('#seenInfo'); if(el) el.textContent='✓ Hai completato tutte le '+pool.length+' domande della prova '+PROVE[prova].label+' — nuovo giro iniziato!'; }
   renderExam();
 }
+function startChoosing(){
+  const eh=$('#examHead'); if(eh){ eh.classList.add('choosing'); eh.classList.remove('running'); }
+  document.querySelectorAll('.provabtn').forEach(x=>x.classList.toggle('active',x.dataset.prova===prova));
+  $('#exam').innerHTML='<div class="card chooseHint">Scegli la <b>prova d\u2019esame</b> qui sopra per iniziare:<br>· <b>Censitore</b> — operatore abilitato ai censimenti<br>· <b>Selecontrollore</b> — cacciatore di selezione<br>25 domande, ammesso con 20/25.</div>';
+  updateSeenInfo();
+}
 function renderExam(){
-  const eh=$('#examHead'); if(eh) eh.classList.add('running');
+  const eh=$('#examHead'); if(eh){ eh.classList.add('running'); eh.classList.remove('choosing'); }
   const N=exam.order.length, ix=exam.order[exam.pos], it=BANK[ix];
   $('#exprog').textContent='Domanda '+(exam.pos+1)+' / '+N;
   let h='<div class="card"><span class="badge">'+(exam.training?'🎯 ripasso · ':'')+it.m+'</span>';
@@ -409,7 +416,7 @@ function reviewCard(pos){ const ix=exam.order[pos], it=BANK[ix], a=exam.ans[pos]
   h+=markBtnHtml(ix)+(LIGHT?'':'<button class="imgbtn" data-idx="'+ix+'">🖼️ Mostra immagine originale</button>')+flagBtnHtml(ix)+(LIGHT?'':'<div class="imgwrap" id="iw'+ix+'"></div>')+'</div>';
   return h; }
 function renderResult(){
-  const eh=$('#examHead'); if(eh) eh.classList.remove('running');
+  const eh=$('#examHead'); if(eh){ eh.classList.remove('running'); eh.classList.add('choosing'); }
   const N=exam.order.length, correct=exam.correct, wrong=exam.wrong, pass=correct>=PASSN, tr=exam.training;
   let h='<div class="result '+(tr?'':(pass?'pass':'fail'))+'"><div class="big">'+correct+' / '+N+'</div>';
   if(tr){ h+='<div class="pf">Ripasso completato — '+correct+'/'+N+' giuste'+(correct<N?'. Le sbagliate restano in lista.':' 🎯')+'</div>'; }
@@ -467,11 +474,11 @@ function renderReview(){
   const tb=$('#trainBtn'); if(tb) tb.onclick=startTraining;
   const rs=$('#resetStats'); if(rs) rs.onclick=()=>{ if(confirm('Azzerare tutte le statistiche degli errori? La lista verrà svuotata.')){ saveStats({}); renderReview(); } };
 }
-document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{ const m=b.dataset.mode; setMode(m); if(m==='exam' && (!exam||exam.done)) startExam(); });
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{ const m=b.dataset.mode; setMode(m); if(m==='exam' && (!exam||exam.done)) startChoosing(); });
 $('#submitEx').onclick=submitExam;
-$('#newExHead').onclick=()=>{ if(!exam||exam.done||confirm('Iniziare un nuovo esame? Le risposte attuali andranno perse.')) startExam(); };
+$('#newExHead').onclick=()=>{ if(!exam||exam.done||confirm('Iniziare un nuovo esame? Le risposte attuali andranno perse.')) startChoosing(); };
 document.querySelectorAll('.provabtn').forEach(b=>b.onclick=()=>{
-  const p=b.dataset.prova; if(p===prova && exam && !exam.done) return;
+  const p=b.dataset.prova;
   if(exam && !exam.done && Object.keys(exam.ans).length && !confirm('Cambiare prova? L\u2019esame in corso andrà perso.')) return;
   prova=p; document.querySelectorAll('.provabtn').forEach(x=>x.classList.toggle('active',x===b));
   startExam();
