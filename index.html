@@ -8,8 +8,10 @@ html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Seg
 body{display:flex;flex-direction:column}
 header{background:var(--g);color:#fff;padding:calc(9px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 9px max(14px,env(safe-area-inset-left));flex:0 0 auto}
 header h1{margin:0 0 8px;font-size:18px;font-weight:800}
-nav{display:flex;gap:6px;flex-wrap:wrap}
-nav button{border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:9px;padding:12px 16px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:rgba(0,0,0,0)}
+nav{display:flex;gap:6px;flex-wrap:nowrap}
+nav button{flex:1 1 0;min-width:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:9px;padding:12px 8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:rgba(0,0,0,0)}
+@media(max-width:430px){nav button{padding:11px 5px;font-size:13px}}
+@media(max-width:360px){nav button{font-size:12px}}
 nav button.active{background:#fff;color:var(--g)}
 nav button:active{transform:scale(.97)}
 .stage{flex:1;position:relative;overflow:hidden}
@@ -35,7 +37,7 @@ nav button:active{transform:scale(.97)}
 <div class="stage">
   <section class="view" id="v-home">
     <div class="cards">
-      <button class="card" data-go="banca"><h2>📝 Banca dati</h2><p>Consulta le 815 domande con risposta, oppure <b>simula l'esame</b>: 25 domande casuali da tutti i moduli, ammesso con 20/25, con revisione degli errori.</p></button>
+      <button class="card" data-go="banca"><h2>📝 Banca dati</h2><p>Consulta le 815 domande con risposta, oppure <b>simula l'esame</b>: due prove separate (Censitore e Selecontrollore), 25 domande ciascuna, ammesso con 20/25, con revisione degli errori.</p></button>
       <button class="card" data-go="focus"><h2>🎯 Focus &mdash; Dentizione &amp; Periodi</h2><p>Ripasso e test mirati sui due temi più ostici, con il <b>calendario dei palchi</b>: ciclo, fasi annuali, amori, gestazione, parti.</p></button>
       <button class="card" data-go="guida"><h2>📖 Guida</h2><p>Riepilogo completo per l'esame: confronto tra le 5 specie, biologia, ottica, gestione e censimenti.</p></button>
     </div>
@@ -114,6 +116,13 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .norisp{font-size:12.5px;color:#c0392b;font-weight:600;margin:4px 0}
 .exrow2{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px;color:var(--muted)}
 .exrow2 #seenInfo{flex:1}
+.exprova{margin-bottom:9px}
+.exprova .provalbl{font-size:13px;font-weight:700;color:var(--muted)}
+.provabtn{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:9px 8px;font-size:13.5px;font-weight:700;cursor:pointer;background:#fff;color:var(--green);font-family:inherit;line-height:1.25}
+.provabtn small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+.provabtn:hover{border-color:var(--green2)}
+.provabtn.active{background:var(--green);color:#fff;border-color:var(--green)}
+.provabtn.active small{color:rgba(255,255,255,.85)}
 .lnk{background:none;border:none;color:var(--green);text-decoration:underline;cursor:pointer;font-size:12px;padding:2px 0;font-family:inherit}
 .rvtabs{display:flex;gap:8px;margin:16px 0 6px}
 .rvtab{flex:1;padding:9px 10px;border:1.5px solid var(--line);background:#fff;color:var(--green);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -183,6 +192,10 @@ button,.pill,.mode,.pq,.btn,.imgbtn,.exopt{-webkit-tap-highlight-color:rgba(0,0,
       </div>
     </div>
     <div id="examHead" hidden>
+      <div class="exrow exprova">
+        <button class="provabtn active" data-prova="censitore">Censitore<small>Operatore ai censimenti</small></button>
+        <button class="provabtn" data-prova="selecontrollore">Selecontrollore<small>Cacciatore di selezione</small></button>
+      </div>
       <div class="exrow">
         <button class="btn s sm" id="newExHead">🔄 Nuovo</button>
         <span id="exprog">Domanda 1 / 25</span>
@@ -292,7 +305,12 @@ document.querySelectorAll('.pill[data-m]').forEach(p=>p.onclick=()=>{
 /* ===== Modalità & Esame ===== */
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 const NQ=25, PASSN=20;
-let mode='browse', exam=null;
+const PROVE={
+  censitore:{label:'Censitore', sub:'Operatore abilitato ai censimenti', mods:['Censitore','Base']},
+  selecontrollore:{label:'Selecontrollore', sub:'Cacciatore di selezione', mods:['Selezione','Base']}
+};
+let mode='browse', exam=null, prova='censitore';
+function provaPool(){ const mods=PROVE[prova].mods; return [...Array(BANK.length).keys()].filter(i=>mods.includes(BANK[i].m)); }
 function setMode(m){
   mode=m;
   document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
@@ -303,24 +321,38 @@ function setMode(m){
   if(m==='review') renderReview();
   window.scrollTo({top:0});
 }
-const SEEN_KEY='caccia_examSeen_v1'; let memSeen=null;
-function loadSeen(){ try{ return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||'[]')); }catch(e){ return memSeen||(memSeen=new Set()); } }
-function saveSeen(s){ memSeen=s; try{ localStorage.setItem(SEEN_KEY, JSON.stringify([...s])); }catch(e){} }
-function updateSeenInfo(){ const el=$('#seenInfo'); if(el) el.textContent='Domande già viste: '+loadSeen().size+' / '+BANK.length; }
+const SEEN_KEY='caccia_examSeen_v1'; let memSeen={};
+function seenKey(){ return SEEN_KEY+'_'+prova; }
+function loadSeen(){ try{ return new Set(JSON.parse(localStorage.getItem(seenKey())||'[]')); }catch(e){ return memSeen[prova]||(memSeen[prova]=new Set()); } }
+function saveSeen(s){ memSeen[prova]=s; try{ localStorage.setItem(seenKey(), JSON.stringify([...s])); }catch(e){} }
+(function migrateSeen(){
+  try{
+    const old=localStorage.getItem(SEEN_KEY); if(old===null) return;
+    const oldSet=new Set(JSON.parse(old));
+    Object.keys(PROVE).forEach(k=>{
+      const nk=SEEN_KEY+'_'+k; if(localStorage.getItem(nk)!==null) return;
+      const mods=PROVE[k].mods;
+      const seed=[...oldSet].filter(i=>BANK[i]&&mods.includes(BANK[i].m));
+      localStorage.setItem(nk, JSON.stringify(seed));
+    });
+  }catch(e){}
+})();
+function updateSeenInfo(){ const el=$('#seenInfo'); if(!el) return; const pool=provaPool(); el.textContent='Prova '+PROVE[prova].label+' · domande già viste: '+loadSeen().size+' / '+pool.length; }
 const STATS_KEY='caccia_stats_v1'; let memStats=null;
 function loadStats(){ try{ return JSON.parse(localStorage.getItem(STATS_KEY)||'{}'); }catch(e){ return memStats||(memStats={}); } }
 function saveStats(o){ memStats=o; try{ localStorage.setItem(STATS_KEY, JSON.stringify(o)); }catch(e){} }
 function startExam(){
-  let seen=loadSeen(); const all=[...Array(BANK.length).keys()];
-  let unseen=all.filter(i=>!seen.has(i)); shuffle(unseen);
+  const pool=provaPool();
+  let seen=loadSeen();
+  let unseen=pool.filter(i=>!seen.has(i)); shuffle(unseen);
   let order, cycled=false;
   if(unseen.length>=NQ){ order=unseen.slice(0,NQ); order.forEach(i=>seen.add(i)); }
   else { cycled=true; order=unseen.slice(); seen=new Set(order);
-    let rest=all.filter(i=>!seen.has(i)); shuffle(rest);
+    let rest=pool.filter(i=>!seen.has(i)); shuffle(rest);
     const extra=rest.slice(0,NQ-order.length); order=order.concat(extra); extra.forEach(i=>seen.add(i)); }
   shuffle(order); saveSeen(seen);
-  exam={order, ans:{}, pos:0, done:false}; updateSeenInfo();
-  if(cycled){ const el=$('#seenInfo'); if(el) el.textContent='✓ Hai completato tutte le '+BANK.length+' domande — nuovo giro iniziato!'; }
+  exam={order, ans:{}, pos:0, done:false, prova}; updateSeenInfo();
+  if(cycled){ const el=$('#seenInfo'); if(el) el.textContent='✓ Hai completato tutte le '+pool.length+' domande della prova '+PROVE[prova].label+' — nuovo giro iniziato!'; }
   renderExam();
 }
 function renderExam(){
@@ -357,7 +389,8 @@ function submitExam(){
   saveStats(st);
   if(!exam.training){ const hist=loadHist(); hist.push(correct); while(hist.length>20) hist.shift(); saveHist(hist);
     const pass=correct>=PASSN;
-    try{ var gc=window.parent&&window.parent.goatcounter; if(gc&&gc.count){ gc.count({path:(pass?'esame-ammesso':'esame-respinto'),event:true}); gc.count({path:'voto-'+correct+'su25',event:true}); } }catch(e){}
+    const pv=exam.prova||prova;
+    try{ var gc=window.parent&&window.parent.goatcounter; if(gc&&gc.count){ gc.count({path:'esame-'+pv+'-'+(pass?'ammesso':'respinto'),event:true}); gc.count({path:'voto-'+pv+'-'+correct+'su25',event:true}); } }catch(e){}
   }
   $('#exprog').textContent='Risultato';
   renderResult();
@@ -373,7 +406,7 @@ function renderResult(){
   const N=exam.order.length, correct=exam.correct, wrong=exam.wrong, pass=correct>=PASSN, tr=exam.training;
   let h='<div class="result '+(tr?'':(pass?'pass':'fail'))+'"><div class="big">'+correct+' / '+N+'</div>';
   if(tr){ h+='<div class="pf">Ripasso completato — '+correct+'/'+N+' giuste'+(correct<N?'. Le sbagliate restano in lista.':' 🎯')+'</div>'; }
-  else { h+='<div class="pf">'+(pass?'✓ AMMESSO':'✗ NON ammesso')+' &nbsp;('+correct+'/'+N+' corrette — servono 20 per essere ammessi)</div>'; }
+  else { const pv=PROVE[exam.prova||prova]; h+='<div class="pf">Prova '+pv.label+' — '+(pass?'✓ AMMESSO':'✗ NON ammesso')+' &nbsp;('+correct+'/'+N+' corrette — servono 20 per essere ammessi)</div>'; }
   h+='<button class="btn p" id="newEx">'+(tr?'↻ Continua ripasso':'↻ Nuovo esame')+'</button></div>';
   h+='<div class="rvtabs"><button class="rvtab'+(exam.review==='all'?' active':'')+'" data-rv="all">Rivedi tutte ('+N+')</button>';
   h+='<button class="rvtab'+(exam.review==='wrong'?' active':'')+'" data-rv="wrong">Solo errori ('+wrong.length+')</button></div>';
@@ -430,7 +463,13 @@ function renderReview(){
 document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{ const m=b.dataset.mode; setMode(m); if(m==='exam' && (!exam||exam.done)) startExam(); });
 $('#submitEx').onclick=submitExam;
 $('#newExHead').onclick=()=>{ if(!exam||exam.done||confirm('Iniziare un nuovo esame? Le risposte attuali andranno perse.')) startExam(); };
-$('#resetSeen').onclick=()=>{ if(confirm('Azzerare la cronologia delle domande già viste? Ricomincerai da tutte le '+BANK.length+'.')){ saveSeen(new Set()); updateSeenInfo(); } };
+document.querySelectorAll('.provabtn').forEach(b=>b.onclick=()=>{
+  const p=b.dataset.prova; if(p===prova && exam && !exam.done) return;
+  if(exam && !exam.done && Object.keys(exam.ans).length && !confirm('Cambiare prova? L\u2019esame in corso andrà perso.')) return;
+  prova=p; document.querySelectorAll('.provabtn').forEach(x=>x.classList.toggle('active',x===b));
+  startExam();
+});
+$('#resetSeen').onclick=()=>{ if(confirm('Azzerare la cronologia delle domande già viste della prova '+PROVE[prova].label+'?')){ saveSeen(new Set()); updateSeenInfo(); } };
 
 function buildExport(){
   const ids=[...flagged].sort((a,b)=>a-b);
