@@ -135,6 +135,10 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .exrow #exprog{margin-left:auto}
 .exrow #submitEx{margin-left:8px}
 .chooseHint{color:var(--muted);font-size:14px;line-height:1.5}
+.provastat{margin:10px 0;padding:9px 11px;background:var(--sel);border-radius:9px;color:var(--ink);font-size:13.5px;line-height:1.5}
+.provastat .seen{color:var(--green);font-weight:700}
+.provastat .unseen{color:#c0392b;font-weight:700}
+.provanote{margin-top:10px;font-size:12.5px}
 .exbar{height:3px;background:var(--line);border-radius:999px;overflow:hidden;margin:12px 0 8px}
 .exbar > i{display:block;height:100%;background:var(--green);border-radius:999px;transition:width .2s}
 .lnk{background:none;border:none;color:var(--green);text-decoration:underline;cursor:pointer;font-size:12px;padding:2px 0;font-family:inherit}
@@ -326,6 +330,13 @@ const PROVE={
 };
 let mode='browse', exam=null, prova='censitore';
 function provaPool(){ const mods=PROVE[prova].mods; return [...Array(BANK.length).keys()].filter(i=>mods.includes(BANK[i].m)); }
+function provaStats(k){
+  const mods=PROVE[k].mods;
+  const pool=[...Array(BANK.length).keys()].filter(i=>mods.includes(BANK[i].m));
+  let seenSet; try{ seenSet=new Set(JSON.parse(localStorage.getItem('caccia_examSeen_v1_'+k)||'[]')); }catch(e){ seenSet=(memSeen[k]||new Set()); }
+  const seen=pool.filter(i=>seenSet.has(i)).length;
+  return {total:pool.length, seen:seen, notSeen:pool.length-seen};
+}
 function setMode(m){
   mode=m;
   document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
@@ -374,7 +385,12 @@ function startChoosing(){
   const eh=$('#examHead'); if(eh){ eh.classList.add('choosing'); eh.classList.remove('running'); }
   const hd=document.querySelector('.head'); if(hd) hd.classList.remove('inexam');
   document.querySelectorAll('.provabtn').forEach(x=>x.classList.remove('active'));
-  $('#exam').innerHTML='<div class="card chooseHint">Scegli la <b>prova d\u2019esame</b> qui sopra per iniziare:<br>· <b>Censitore</b> — operatore abilitato ai censimenti<br>· <b>Selecontrollore</b> — cacciatore di selezione<br>25 domande, ammesso con 20/25.</div>';
+  const cs=provaStats('censitore'), ss=provaStats('selecontrollore');
+  const row=(t,sub,st)=>'<div class="provastat"><b>'+t+'</b> — '+sub+'<br><span class="seen">'+st.seen+' viste</span> · <span class="unseen">'+st.notSeen+' da vedere</span> · '+st.total+' totali</div>';
+  $('#exam').innerHTML='<div class="card chooseHint">Scegli la <b>prova d\u2019esame</b> qui sopra per iniziare:'
+    +row('Censitore','operatore abilitato ai censimenti',cs)
+    +row('Selecontrollore','cacciatore di selezione',ss)
+    +'<div class="provanote">25 domande, ammesso con 20/25.</div></div>';
   updateSeenInfo();
 }
 function renderExam(){
