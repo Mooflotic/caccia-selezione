@@ -351,16 +351,21 @@ const SEEN_KEY='caccia_examSeen_v1'; let memSeen={};
 function seenKey(){ return SEEN_KEY+'_'+prova; }
 function loadSeen(){ try{ return new Set(JSON.parse(localStorage.getItem(seenKey())||'[]')); }catch(e){ return memSeen[prova]||(memSeen[prova]=new Set()); } }
 function saveSeen(s){ memSeen[prova]=s; try{ localStorage.setItem(seenKey(), JSON.stringify([...s])); }catch(e){} }
-(function migrateSeen(){
+(function repairSeen(){
   try{
-    const old=localStorage.getItem(SEEN_KEY); if(old===null) return;
-    const oldSet=new Set(JSON.parse(old));
-    Object.keys(PROVE).forEach(k=>{
-      const nk=SEEN_KEY+'_'+k; if(localStorage.getItem(nk)!==null) return;
-      const mods=PROVE[k].mods;
-      const seed=[...oldSet].filter(i=>BANK[i]&&mods.includes(BANK[i].m));
-      localStorage.setItem(nk, JSON.stringify(seed));
-    });
+    if(localStorage.getItem('caccia_seenRepair_v1')) return;
+    const sources=new Set();
+    try{ const old=localStorage.getItem(SEEN_KEY); if(old!==null) JSON.parse(old).forEach(i=>sources.add(+i)); }catch(e){}
+    try{ const st=JSON.parse(localStorage.getItem('caccia_stats_v1')||'{}'); Object.keys(st).forEach(k=>sources.add(+k)); }catch(e){}
+    if(sources.size){
+      Object.keys(PROVE).forEach(k=>{
+        const nk=SEEN_KEY+'_'+k; const mods=PROVE[k].mods;
+        let cur; try{ cur=new Set(JSON.parse(localStorage.getItem(nk)||'[]')); }catch(e){ cur=new Set(); }
+        sources.forEach(i=>{ if(BANK[i]&&mods.includes(BANK[i].m)) cur.add(i); });
+        localStorage.setItem(nk, JSON.stringify([...cur]));
+      });
+    }
+    localStorage.setItem('caccia_seenRepair_v1','1');
   }catch(e){}
 })();
 function updateSeenInfo(){ const el=$('#seenInfo'); if(!el) return; const pool=provaPool(); el.textContent='Prova '+PROVE[prova].label+' · domande già viste: '+loadSeen().size+' / '+pool.length; }
