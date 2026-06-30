@@ -135,6 +135,8 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .exrow #exprog{margin-left:auto}
 .exrow #submitEx{margin-left:8px}
 .chooseHint{color:var(--muted);font-size:14px;line-height:1.5}
+.exbar{height:3px;background:var(--line);border-radius:999px;overflow:hidden;margin:12px 0 8px}
+.exbar > i{display:block;height:100%;background:var(--green);border-radius:999px;transition:width .2s}
 .lnk{background:none;border:none;color:var(--green);text-decoration:underline;cursor:pointer;font-size:12px;padding:2px 0;font-family:inherit}
 .rvtabs{display:flex;gap:8px;margin:16px 0 6px}
 .rvtab{flex:1;padding:9px 10px;border:1.5px solid var(--line);background:#fff;color:var(--green);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -385,11 +387,14 @@ function renderExam(){
   LET.forEach(L=>{ const sel=exam.ans[exam.pos]===L;
     h+='<div class="exopt'+(sel?' sel':'')+'" data-l="'+L+'"><span class="lt">'+L+'</span><span class="tx">'+escapeHtml(it[L]||'')+'</span></div>'; });
   h+=flagBtnHtml(ix);
-  h+='</div><div class="palette">';
-  for(let i=0;i<N;i++){ h+='<button class="pq'+(i===exam.pos?' cur':'')+(exam.ans[i]!==undefined?' done':'')+'" data-pos="'+i+'">'+(i+1)+'</button>'; }
-  h+='</div><div class="navrow"><button class="btn s" id="prevQ"'+(exam.pos===0?' disabled':'')+'>← Indietro</button>';
+  h+='</div>';
+  h+='<div class="exbar"><i style="width:'+Math.round((exam.pos+1)/N*100)+'%"></i></div>';
+  h+='<div class="navrow"><button class="btn s sm" id="prevQ"'+(exam.pos===0?' disabled':'')+'>← Indietro</button>';
   h+='<span class="ansN">Risposte: '+Object.keys(exam.ans).length+' / '+N+'</span>';
-  h+='<button class="btn s" id="nextQ"'+(exam.pos===N-1?' disabled':'')+'>Avanti →</button></div>';
+  h+='<button class="btn s sm" id="nextQ"'+(exam.pos===N-1?' disabled':'')+'>Avanti →</button></div>';
+  h+='<div class="palette">';
+  for(let i=0;i<N;i++){ h+='<button class="pq'+(i===exam.pos?' cur':'')+(exam.ans[i]!==undefined?' done':'')+'" data-pos="'+i+'">'+(i+1)+'</button>'; }
+  h+='</div>';
   $('#exam').innerHTML=h;
   document.querySelectorAll('.exopt').forEach(o=>o.onclick=()=>{ exam.ans[exam.pos]=o.dataset.l; renderExam(); });
   document.querySelectorAll('.pq').forEach(b=>b.onclick=()=>{ exam.pos=+b.dataset.pos; renderExam(); window.scrollTo({top:0}); });
