@@ -203,9 +203,8 @@ button,.pill,.mode,.pq,.btn,.imgbtn,.exopt{-webkit-tap-highlight-color:rgba(0,0,
       <input class="search" id="q" placeholder="Cerca… (es. anschuss, gestazione daino, pupilla d'uscita, denti…)" autocomplete="off">
       <div class="controls">
         <div class="pill active" data-m="Tutti">Tutti</div>
-        <div class="pill" data-m="Base">Base</div>
-        <div class="pill" data-m="Selezione">Selezione</div>
         <div class="pill" data-m="Censitore">Censitore</div>
+        <div class="pill" data-m="Selecontrollore">Selecontrollore</div>
         <div class="pill" data-m="★">★ Preferiti</div>
         <span class="count" id="count">—</span>
       </div>
@@ -265,6 +264,8 @@ function escapeHtml(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt
 
 function matches(it,idx){
   if(fMod==='★'){ if(!marks.has(idx)) return false; }
+  else if(fMod==='Censitore'){ if(it.m!=='Censitore') return false; }
+  else if(fMod==='Selecontrollore'){ if(it.m!=='Selezione' && it.m!=='Base') return false; }
   else if(fMod!=='Tutti' && it.m!==fMod) return false;
   if(fQ){ const blob=norm([it.stem,it.A,it.B,it.C,it.D,it.id,it.m].join(' ')); if(!blob.includes(norm(fQ))) return false; }
   return true;
@@ -1235,7 +1236,7 @@ function show(v){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(c.dataset.go));
-const APP_VERSION='v1.8.3';
+const APP_VERSION='v1.8.4';
 (function(){ const el=document.getElementById('appVer'); if(el) el.textContent=APP_VERSION; })();
 show('home');
 </script>
