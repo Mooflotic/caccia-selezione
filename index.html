@@ -357,19 +357,20 @@ function loadSeen(){ try{ return new Set(JSON.parse(localStorage.getItem(seenKey
 function saveSeen(s){ memSeen[prova]=s; try{ localStorage.setItem(seenKey(), JSON.stringify([...s])); }catch(e){} }
 (function repairSeen(){
   try{
-    if(localStorage.getItem('caccia_seenRepair_v1')) return;
+    if(localStorage.getItem('caccia_seenRepair_v2')) return;
     const sources=new Set();
     try{ const old=localStorage.getItem(SEEN_KEY); if(old!==null) JSON.parse(old).forEach(i=>sources.add(+i)); }catch(e){}
+    Object.keys(PROVE).forEach(k=>{ try{ JSON.parse(localStorage.getItem(SEEN_KEY+'_'+k)||'[]').forEach(i=>sources.add(+i)); }catch(e){} });
     try{ const st=JSON.parse(localStorage.getItem('caccia_stats_v1')||'{}'); Object.keys(st).forEach(k=>sources.add(+k)); }catch(e){}
     if(sources.size){
       Object.keys(PROVE).forEach(k=>{
         const nk=SEEN_KEY+'_'+k; const mods=PROVE[k].mods;
-        let cur; try{ cur=new Set(JSON.parse(localStorage.getItem(nk)||'[]')); }catch(e){ cur=new Set(); }
+        const cur=new Set();
         sources.forEach(i=>{ if(BANK[i]&&mods.includes(BANK[i].m)) cur.add(i); });
         localStorage.setItem(nk, JSON.stringify([...cur]));
       });
     }
-    localStorage.setItem('caccia_seenRepair_v1','1');
+    localStorage.setItem('caccia_seenRepair_v2','1');
   }catch(e){}
 })();
 function updateSeenInfo(){ const el=$('#seenInfo'); if(!el) return; const pool=provaPool(); el.textContent='Prova '+PROVE[prova].label+' · domande già viste: '+loadSeen().size+' / '+pool.length; }
@@ -1238,7 +1239,7 @@ function show(v){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(c.dataset.go));
-const APP_VERSION='v1.8.5';
+const APP_VERSION='v1.8.6';
 (function(){ const el=document.getElementById('appVer'); if(el) el.textContent=APP_VERSION; })();
 show('home');
 </script>
