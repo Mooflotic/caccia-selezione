@@ -373,7 +373,7 @@ function saveSeen(s){ memSeen[prova]=s; try{ localStorage.setItem(seenKey(), JSO
     localStorage.setItem('caccia_seenRepair_v2','1');
   }catch(e){}
 })();
-function updateSeenInfo(){ const el=$('#seenInfo'); if(!el) return; const pool=provaPool(); el.textContent='Prova '+PROVE[prova].label+' · domande già viste: '+loadSeen().size+' / '+pool.length; }
+function updateSeenInfo(){ const el=$('#seenInfo'); if(!el) return; const pool=provaPool(); const seen=loadSeen(); const cnt=pool.filter(i=>seen.has(i)).length; el.textContent='Prova '+PROVE[prova].label+' · domande già viste: '+cnt+' / '+pool.length; }
 const STATS_KEY='caccia_stats_v1'; let memStats=null;
 function loadStats(){ try{ return JSON.parse(localStorage.getItem(STATS_KEY)||'{}'); }catch(e){ return memStats||(memStats={}); } }
 function saveStats(o){ memStats=o; try{ localStorage.setItem(STATS_KEY, JSON.stringify(o)); }catch(e){} }
@@ -381,14 +381,16 @@ function startExam(){
   const pool=provaPool();
   let seen=loadSeen();
   let unseen=pool.filter(i=>!seen.has(i)); shuffle(unseen);
-  let order, cycled=false;
-  if(unseen.length>=NQ){ order=unseen.slice(0,NQ); order.forEach(i=>seen.add(i)); }
-  else { cycled=true; order=unseen.slice(); seen=new Set(order);
-    let rest=pool.filter(i=>!seen.has(i)); shuffle(rest);
-    const extra=rest.slice(0,NQ-order.length); order=order.concat(extra); extra.forEach(i=>seen.add(i)); }
+  let order;
+  if(unseen.length>=NQ){ order=unseen.slice(0,NQ); }
+  else { order=unseen.slice();
+    let rest=pool.filter(i=>seen.has(i)); shuffle(rest);
+    order=order.concat(rest.slice(0,NQ-order.length)); }
+  order.forEach(i=>seen.add(i));
   shuffle(order); saveSeen(seen);
+  const completed=pool.every(i=>seen.has(i));
   exam={order, ans:{}, pos:0, done:false, prova}; updateSeenInfo();
-  if(cycled){ const el=$('#seenInfo'); if(el) el.textContent='✓ Hai completato tutte le '+pool.length+' domande della prova '+PROVE[prova].label+' — nuovo giro iniziato!'; }
+  if(completed){ const el=$('#seenInfo'); if(el) el.textContent='✓ Hai visto tutte le '+pool.length+' domande della prova '+PROVE[prova].label+'! Le domande possono ripetersi.'; }
   renderExam();
 }
 function startChoosing(){
@@ -1239,7 +1241,7 @@ function show(v){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(c.dataset.go));
-const APP_VERSION='v1.8.6';
+const APP_VERSION='v1.8.7';
 (function(){ const el=document.getElementById('appVer'); if(el) el.textContent=APP_VERSION; })();
 show('home');
 </script>
