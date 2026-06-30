@@ -114,6 +114,8 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .rvh{color:var(--green);font-size:15px;margin:18px 0 4px}
 .opt.chosen{background:#fbecea}
 .opt.chosen .lt{background:#c0392b;color:#fff}
+.opt.chosen .tx{text-decoration:line-through;color:#c0392b}
+.opt.chosen .tx::after{content:" ✗";color:#c0392b;font-weight:800;text-decoration:none}
 .norisp{font-size:12.5px;color:#c0392b;font-weight:600;margin:4px 0}
 .exrow2{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12px;color:var(--muted)}
 .exrow2 #seenInfo{flex:1}
@@ -1236,7 +1238,7 @@ function show(v){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(c.dataset.go));
-const APP_VERSION='v1.8.4';
+const APP_VERSION='v1.8.5';
 (function(){ const el=document.getElementById('appVer'); if(el) el.textContent=APP_VERSION; })();
 show('home');
 </script>
