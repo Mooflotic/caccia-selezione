@@ -357,7 +357,7 @@ function loadSeen(){ try{ return new Set(JSON.parse(localStorage.getItem(seenKey
 function saveSeen(s){ memSeen[prova]=s; try{ localStorage.setItem(seenKey(), JSON.stringify([...s])); }catch(e){} }
 (function repairSeen(){
   try{
-    if(localStorage.getItem('caccia_seenRepair_v2')) return;
+    if(localStorage.getItem('caccia_seenRepair_v3')) return;
     const sources=new Set();
     try{ const old=localStorage.getItem(SEEN_KEY); if(old!==null) JSON.parse(old).forEach(i=>sources.add(+i)); }catch(e){}
     Object.keys(PROVE).forEach(k=>{ try{ JSON.parse(localStorage.getItem(SEEN_KEY+'_'+k)||'[]').forEach(i=>sources.add(+i)); }catch(e){} });
@@ -370,7 +370,7 @@ function saveSeen(s){ memSeen[prova]=s; try{ localStorage.setItem(seenKey(), JSO
         localStorage.setItem(nk, JSON.stringify([...cur]));
       });
     }
-    localStorage.setItem('caccia_seenRepair_v2','1');
+    localStorage.setItem('caccia_seenRepair_v3','1');
   }catch(e){}
 })();
 function updateSeenInfo(){ const el=$('#seenInfo'); if(!el) return; const pool=provaPool(); const seen=loadSeen(); const cnt=pool.filter(i=>seen.has(i)).length; el.textContent='Prova '+PROVE[prova].label+' · domande già viste: '+cnt+' / '+pool.length; }
@@ -1241,7 +1241,7 @@ function show(v){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(c.dataset.go));
-const APP_VERSION='v1.8.7';
+const APP_VERSION='v1.8.8';
 (function(){ const el=document.getElementById('appVer'); if(el) el.textContent=APP_VERSION; })();
 show('home');
 </script>
