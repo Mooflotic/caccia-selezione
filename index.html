@@ -326,7 +326,7 @@ document.querySelectorAll('.pill[data-m]').forEach(p=>p.onclick=()=>{
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 const NQ=25, PASSN=20;
 const PROVE={
-  censitore:{label:'Censitore', sub:'Operatore abilitato ai censimenti', mods:['Censitore','Base']},
+  censitore:{label:'Censitore', sub:'Operatore abilitato ai censimenti', mods:['Censitore']},
   selecontrollore:{label:'Selecontrollore', sub:'Cacciatore di selezione', mods:['Selezione','Base']}
 };
 let mode='browse', exam=null, prova='censitore';
@@ -1235,7 +1235,7 @@ function show(v){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(c.dataset.go));
-const APP_VERSION='v1.8.2';
+const APP_VERSION='v1.8.3';
 (function(){ const el=document.getElementById('appVer'); if(el) el.textContent=APP_VERSION; })();
 show('home');
 </script>
