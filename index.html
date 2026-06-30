@@ -159,6 +159,7 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .pstat.ok{border-color:var(--ok)} .pstat.ok b{color:var(--ok)}
 .pstat.bad{border-color:#e8b4ad} .pstat.bad b{color:#c0392b}
 .train{width:100%;margin:0 0 12px}
+.train.fav{background:#b9770e}
 .markbtn{margin-top:8px;margin-left:8px;border:1.5px solid #e0c468;border-radius:9px;padding:8px 12px;background:#fff;color:#9a7d12;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
 .markbtn.on{background:#fdf6e3;border-color:#d4af37;color:#7a6210}
 .repbar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
@@ -410,7 +411,7 @@ function renderExam(){
   const hd=document.querySelector('.head'); if(hd) hd.classList.add('inexam');
   const N=exam.order.length, ix=exam.order[exam.pos], it=BANK[ix];
   $('#exprog').textContent=(exam.pos+1)+' / '+N;
-  let h='<div class="card"><span class="badge">'+(exam.training?'🎯 ripasso · ':'')+it.m+'</span>';
+  let h='<div class="card"><span class="badge">'+(exam.fav?'★ preferito · ':(exam.training?'🎯 ripasso · ':''))+it.m+'</span>';
   h+='<div class="stem">'+escapeHtml(it.stem)+'</div>';
   LET.forEach(L=>{ const sel=exam.ans[exam.pos]===L;
     h+='<div class="exopt'+(sel?' sel':'')+'" data-l="'+L+'"><span class="lt">'+L+'</span><span class="tx">'+escapeHtml(it[L]||'')+'</span></div>'; });
@@ -462,9 +463,9 @@ function renderResult(){
   const hd=document.querySelector('.head'); if(hd) hd.classList.remove('inexam');
   const N=exam.order.length, correct=exam.correct, wrong=exam.wrong, pass=correct>=PASSN, tr=exam.training;
   let h='<div class="result '+(tr?'':(pass?'pass':'fail'))+'"><div class="big">'+correct+' / '+N+'</div>';
-  if(tr){ h+='<div class="pf">Ripasso completato — '+correct+'/'+N+' giuste'+(correct<N?'. Le sbagliate restano in lista.':' 🎯')+'</div>'; }
+  if(tr){ h+='<div class="pf">'+(exam.fav?'Ripasso preferiti':'Ripasso')+' completato — '+correct+'/'+N+' giuste'+(correct<N?'.':' 🎯')+'</div>'; }
   else { const pv=PROVE[exam.prova||prova]; h+='<div class="pf">Prova '+pv.label+' — '+(pass?'✓ AMMESSO':'✗ NON ammesso')+' &nbsp;('+correct+'/'+N+' corrette — servono 20 per essere ammessi)</div>'; }
-  h+='<button class="btn p" id="newEx">'+(tr?'↻ Continua ripasso':'↻ Nuovo esame')+'</button></div>';
+  h+='<button class="btn p" id="newEx">'+(exam.fav?'★ Altri preferiti':(tr?'↻ Continua ripasso':'↻ Nuovo esame'))+'</button></div>';
   h+='<div class="rvtabs"><button class="rvtab'+(exam.review==='all'?' active':'')+'" data-rv="all">Rivedi tutte ('+N+')</button>';
   h+='<button class="rvtab'+(exam.review==='wrong'?' active':'')+'" data-rv="wrong">Solo errori ('+wrong.length+')</button></div>';
   if(exam.review==='wrong'){
@@ -472,7 +473,7 @@ function renderResult(){
     else h+='<div class="empty">Tutte corrette! 🎯</div>';
   } else { exam.order.forEach((_,p)=>{ h+=reviewCard(p); }); }
   $('#exam').innerHTML=h; window.scrollTo({top:0});
-  $('#newEx').onclick = tr ? startTraining : startExam;
+  $('#newEx').onclick = exam.fav ? startFavTraining : (tr ? startTraining : startExam);
   document.querySelectorAll('.rvtab').forEach(b=>b.onclick=()=>{ exam.review=b.dataset.rv; renderResult(); });
 }
 function errorPool(){ const st=loadStats(); return Object.keys(st).map(k=>+k).filter(ix=>st[ix]&&st[ix].w>0&&st[ix].bad!==false).sort((a,b)=> (st[b].w-st[a].w) || ((st[b].w/st[b].n)-(st[a].w/st[a].n)) ); }
@@ -483,6 +484,15 @@ function startTraining(){
   exam={order, ans:{}, pos:0, done:false, training:true};
   setMode('exam');
   const el=$('#seenInfo'); if(el) el.textContent='🎯 Ripasso mirato — '+order.length+' domande dai tuoi errori';
+  renderExam();
+}
+function startFavTraining(){
+  const pool=[...marks];
+  if(!pool.length){ alert('Non hai ancora preferiti. Aggiungili con ☆ nelle domande (sono quelle che pensi di sbagliare di più).'); return; }
+  const ord=pool.slice(); shuffle(ord); const order=ord.slice(0, Math.min(ord.length, NQ));
+  exam={order, ans:{}, pos:0, done:false, training:true, fav:true};
+  setMode('exam');
+  const el=$('#seenInfo'); if(el) el.textContent='★ Ripasso preferiti — '+order.length+' domande';
   renderExam();
 }
 function progressPanel(){
@@ -502,7 +512,8 @@ function progressPanel(){
 function renderReview(){
   const st=loadStats(); const items=errorPool();
   let h=progressPanel();
-  if(!items.length){ h+='<div class="empty">Nessuna domanda da ripassare in questo momento.<br>Fai qualche simulazione: le domande che sbagli compariranno qui.</div>'; }
+  if(marks.size){ h+='<button class="btn p train fav" id="favBtn">★ Testa i tuoi preferiti ('+marks.size+')</button>'; }
+  if(!items.length){ h+='<div class="empty">Nessuna domanda da ripassare in questo momento.<br>Fai qualche simulazione: le domande che sbagli compariranno qui.'+(marks.size?'<br>Oppure testa i tuoi <b>preferiti</b> qui sopra.':'')+'</div>'; }
   else {
     h+='<button class="btn p train" id="trainBtn">🎯 Allenati sui tuoi errori ('+items.length+')</button>';
     h+='<div class="rvinfo">Ordinate dalle più sbagliate · "Imparata" o una risposta giusta le rimuove. <button class="lnk" id="resetStats">azzera statistiche</button></div>';
@@ -515,6 +526,7 @@ function renderReview(){
   }
   $('#review').innerHTML=h;
   const tb=$('#trainBtn'); if(tb) tb.onclick=startTraining;
+  const fb=$('#favBtn'); if(fb) fb.onclick=startFavTraining;
   const rs=$('#resetStats'); if(rs) rs.onclick=()=>{ if(confirm('Azzerare tutte le statistiche degli errori? La lista verrà svuotata.')){ saveStats({}); renderReview(); } };
 }
 document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{ const m=b.dataset.mode; setMode(m); if(m==='exam' && (!exam||exam.done)) startChoosing(); });
@@ -1241,7 +1253,7 @@ function show(v){
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
 document.querySelectorAll('.card').forEach(c=>c.onclick=()=>show(c.dataset.go));
-const APP_VERSION='v1.8.8';
+const APP_VERSION='v1.9';
 (function(){ const el=document.getElementById('appVer'); if(el) el.textContent=APP_VERSION; })();
 show('home');
 </script>
