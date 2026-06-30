@@ -123,6 +123,9 @@ mark{background:#fff2b8;padding:0 1px;border-radius:2px}
 .provabtn:hover{border-color:var(--green2)}
 .provabtn.active{background:var(--green);color:#fff;border-color:var(--green)}
 .provabtn.active small{color:rgba(255,255,255,.85)}
+#examHead.running .exprova{display:none}
+#examHead.running .exrow{gap:8px}
+#examHead.running .exrow2{display:none}
 .lnk{background:none;border:none;color:var(--green);text-decoration:underline;cursor:pointer;font-size:12px;padding:2px 0;font-family:inherit}
 .rvtabs{display:flex;gap:8px;margin:16px 0 6px}
 .rvtab{flex:1;padding:9px 10px;border:1.5px solid var(--line);background:#fff;color:var(--green);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
@@ -356,6 +359,7 @@ function startExam(){
   renderExam();
 }
 function renderExam(){
+  const eh=$('#examHead'); if(eh) eh.classList.add('running');
   const N=exam.order.length, ix=exam.order[exam.pos], it=BANK[ix];
   $('#exprog').textContent='Domanda '+(exam.pos+1)+' / '+N;
   let h='<div class="card"><span class="badge">'+(exam.training?'🎯 ripasso · ':'')+it.m+'</span>';
@@ -403,6 +407,7 @@ function reviewCard(pos){ const ix=exam.order[pos], it=BANK[ix], a=exam.ans[pos]
   h+=markBtnHtml(ix)+(LIGHT?'':'<button class="imgbtn" data-idx="'+ix+'">🖼️ Mostra immagine originale</button>')+flagBtnHtml(ix)+(LIGHT?'':'<div class="imgwrap" id="iw'+ix+'"></div>')+'</div>';
   return h; }
 function renderResult(){
+  const eh=$('#examHead'); if(eh) eh.classList.remove('running');
   const N=exam.order.length, correct=exam.correct, wrong=exam.wrong, pass=correct>=PASSN, tr=exam.training;
   let h='<div class="result '+(tr?'':(pass?'pass':'fail'))+'"><div class="big">'+correct+' / '+N+'</div>';
   if(tr){ h+='<div class="pf">Ripasso completato — '+correct+'/'+N+' giuste'+(correct<N?'. Le sbagliate restano in lista.':' 🎯')+'</div>'; }
