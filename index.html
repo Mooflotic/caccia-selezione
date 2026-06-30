@@ -207,7 +207,7 @@ button,.pill,.mode,.pq,.btn,.imgbtn,.exopt{-webkit-tap-highlight-color:rgba(0,0,
     </div>
     <div id="examHead" hidden>
       <div class="exrow exprova">
-        <button class="provabtn active" data-prova="censitore">Censitore<small>Operatore ai censimenti</small></button>
+        <button class="provabtn" data-prova="censitore">Censitore<small>Operatore ai censimenti</small></button>
         <button class="provabtn" data-prova="selecontrollore">Selecontrollore<small>Cacciatore di selezione</small></button>
       </div>
       <div class="exrow">
@@ -373,7 +373,7 @@ function startExam(){
 function startChoosing(){
   const eh=$('#examHead'); if(eh){ eh.classList.add('choosing'); eh.classList.remove('running'); }
   const hd=document.querySelector('.head'); if(hd) hd.classList.remove('inexam');
-  document.querySelectorAll('.provabtn').forEach(x=>x.classList.toggle('active',x.dataset.prova===prova));
+  document.querySelectorAll('.provabtn').forEach(x=>x.classList.remove('active'));
   $('#exam').innerHTML='<div class="card chooseHint">Scegli la <b>prova d\u2019esame</b> qui sopra per iniziare:<br>· <b>Censitore</b> — operatore abilitato ai censimenti<br>· <b>Selecontrollore</b> — cacciatore di selezione<br>25 domande, ammesso con 20/25.</div>';
   updateSeenInfo();
 }
